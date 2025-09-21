@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Simple Login Frontend</title>
+    <style>
+      body { font-family: Arial, Helvetica, sans-serif; }
+      .container { max-width: 420px; margin: 60px auto; text-align: center; }
+      input { display:block; width:100%; box-sizing: border-box; margin:8px 0; padding:10px; }
+      button { padding:10px 16px; }
+      .link { margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Simple Login Frontend</h1>
+      <h2>Register</h2>
+      <input id="reg_email" placeholder="Email" />
+      <input id="reg_password" type="password" placeholder="Password" />
+      <button onclick="register()">Register</button>
+      <div id="reg_result"></div>
+      <div class="link">Already a user? <a href="/login.html">Login</a></div>
+    </div>
+    <script>
+      async function register() {
+        const email = document.getElementById('reg_email').value;
+        const password = document.getElementById('reg_password').value;
+        const res = await fetch('/api/register.php', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
+        const data = await res.json();
+        document.getElementById('reg_result').innerText = JSON.stringify(data);
+      }
+    </script>
+  </body>
+</html>

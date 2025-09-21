@@ -4,7 +4,15 @@ resource "aws_launch_template" "backend" {
   instance_type = var.instance_type
   key_name = var.key_name
   vpc_security_group_ids = [var.app_sg_id]
-  user_data = base64encode(templatefile("${path.module}/user_data.tpl", { db_endpoint = var.db_endpoint, db_password = var.db_password, db_name = var.db_name }))
+  iam_instance_profile { name = var.instance_profile_name }
+  user_data = base64encode(templatefile("${path.module}/user_data.tpl", {
+    db_endpoint = var.db_endpoint,
+    db_password = var.db_password,
+    db_name = var.db_name,
+    aws_region = var.aws_region,
+    ecr_repo_uri = var.ecr_repo_uri,
+    image_tag = var.image_tag
+  }))
 }
 
 resource "aws_autoscaling_group" "back_asg" {

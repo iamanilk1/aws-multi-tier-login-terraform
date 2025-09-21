@@ -11,3 +11,7 @@ variable "db_endpoint" { type = string }
 variable "db_password" { type = string }
 variable "alb_target_group_arn" { type = string }
 variable "db_name" { type = string }
+variable "aws_region" { type = string }
+variable "ecr_repo_uri" { type = string }
+variable "image_tag" { type = string }
+variable "instance_profile_name" { type = string }

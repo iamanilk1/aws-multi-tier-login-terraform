@@ -119,3 +119,28 @@ variable "www_subdomain" {
   type    = string
   default = "www"
 }
+
+# Containerization
+variable "container_image_tag" {
+  type        = string
+  description = "Tag to deploy for frontend/backend containers in ECR"
+  default     = "latest"
+}
+
+# CICD (GitHub via CodeStar Connections)
+variable "github_connection_name" {
+  type        = string
+  description = "Name for the CodeStar Connections connection to GitHub"
+  default     = "github-connection"
+}
+
+variable "github_repo_full_name" {
+  type        = string
+  description = "GitHub repository full name (owner/repo)"
+}
+
+variable "github_branch" {
+  type        = string
+  description = "Git branch to build from"
+  default     = "main"
+}

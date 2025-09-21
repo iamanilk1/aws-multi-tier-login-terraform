@@ -64,3 +64,44 @@ Set:
 	domain_name        = "iamanilk.space"
 	create_hosted_zone = false
 	hosted_zone_id     = "ZXXXXXXXXXXXXX"  # your existing zone id
+
+Containerization and ECR
+This repo now includes Dockerfiles for the frontend (static Nginx) and backend (PHP-Apache). Terraform provisions a single ECR repository and updates EC2 user_data to pull and run images. Images are distinguished by tag prefixes: frontend-<tag> and backend-<tag>.
+
+Build and push images (Windows cmd)
+Prereqs: Docker Desktop, AWS CLI configured (aws configure), and Terraform applied to create ECR repos.
+
+1) Get the ECR repo URI from outputs:
+	- ecr_repo
+
+2) Authenticate Docker to ECR:
+	aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.%AWS_REGION%.amazonaws.com
+
+  Alternatively, derive the registry from the repo URI:
+	for /f "tokens=1 delims=/" %i in ("%ECR_REPO%") do set ECR_REG=%i
+	aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_REG%
+
+3) Build and push frontend:
+	docker build -t %ECR_REPO%:frontend-latest app\frontend
+	docker push %ECR_REPO%:frontend-latest
+
+4) Build and push backend:
+	docker build -t %ECR_REPO%:backend-latest app\backend
+	docker push %ECR_REPO%:backend-latest
+
+Notes
+- Set environment variables before running (example):
+	set AWS_REGION=ap-south-1
+	set ECR_REPO=<repo from output ecr_repo>
+- To deploy a different tag, set container_image_tag in terraform.tfvars and push images tagged frontend-<tag> and backend-<tag>.
+
+Local development with Docker Compose
+- Requires a MySQL instance reachable from your machine if you want to test backend. For quick smoke tests without MySQL, backend endpoints will return 500 for DB operations.
+  docker compose up --build
+  Frontend: http://localhost:8080
+  Backend:  http://localhost:8081
+
+Deploying containers
+- After pushing images, either scale in/out the ASGs or trigger instance refresh to make user_data pull the new tag. Changing `container_image_tag` and applying Terraform will roll new instances.
+- ALB routes `/` to frontend and `/api/*` to backend. Frontend assets include index.html and login.html that call `/api/*` endpoints.
+

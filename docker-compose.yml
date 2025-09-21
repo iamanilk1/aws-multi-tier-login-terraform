@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  frontend:
+    build: ./app/frontend
+    image: simple-login/frontend:local
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+  backend:
+    build: ./app/backend
+    image: simple-login/backend:local
+    environment:
+      DB_HOST: ${DB_HOST:-127.0.0.1}
+      DB_NAME: ${DB_NAME:-appdb}
+      DB_USER: ${DB_USER:-appuser}
+      DB_PASS: ${DB_PASS:-password}
+    ports:
+      - "8081:80"

@@ -1,84 +1,26 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 yum update -y || true
-amazon-linux-extras enable php8.0 || true
-yum install -y httpd php php-mysqlnd wget unzip
-systemctl enable httpd
-systemctl start httpd
-# simple health file
-mkdir -p /var/www/html
-cat > /var/www/html/health <<'HEALTH'
-OK
-HEALTH
-# homepage with centered Register and link to Login page
-cat > /var/www/html/index.html <<'IDX'
-<html>
-	<head>
-		<meta charset="utf-8" />
-		<title>Simple Login Frontend</title>
-		<style>
-			body { font-family: Arial, Helvetica, sans-serif; }
-			.container { max-width: 420px; margin: 60px auto; text-align: center; }
-			input { display:block; width:100%; box-sizing: border-box; margin:8px 0; padding:10px; }
-			button { padding:10px 16px; }
-			.link { margin-top: 12px; }
-		</style>
-	</head>
-	<body>
-		<div class="container">
-			<h1>Simple Login Frontend</h1>
-			<h2>Register</h2>
-			<input id="reg_email" placeholder="Email" />
-			<input id="reg_password" type="password" placeholder="Password" />
-			<button onclick="register()">Register</button>
-			<div id="reg_result"></div>
-			<div class="link">Already a user? <a href="/login.html">Login</a></div>
-		</div>
-		<script>
-			async function register() {
-				const email = document.getElementById('reg_email').value;
-				const password = document.getElementById('reg_password').value;
-				const res = await fetch('/api/register.php', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
-				const data = await res.json();
-				document.getElementById('reg_result').innerText = JSON.stringify(data);
-			}
-		</script>
-	</body>
-</html>
-IDX
+yum install -y docker unzip || true
+# Install AWS CLI v2
+curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+unzip -q -o /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install || true
+systemctl enable docker
+systemctl start docker
 
-# dedicated login page
-cat > /var/www/html/login.html <<'LOGIN'
-<html>
-	<head>
-		<meta charset="utf-8" />
-		<title>Login</title>
-		<style>
-			body { font-family: Arial, Helvetica, sans-serif; }
-			.container { max-width: 420px; margin: 60px auto; text-align: center; }
-			input { display:block; width:100%; box-sizing: border-box; margin:8px 0; padding:10px; }
-			button { padding:10px 16px; }
-			.link { margin-top: 12px; }
-		</style>
-	</head>
-	<body>
-		<div class="container">
-			<h1>Login</h1>
-			<input id="log_email" placeholder="Email" />
-			<input id="log_password" type="password" placeholder="Password" />
-			<button onclick="login()">Login</button>
-			<div id="log_result"></div>
-			<div class="link">New here? <a href="/">Register</a></div>
-		</div>
-		<script>
-			async function login() {
-				const email = document.getElementById('log_email').value;
-				const password = document.getElementById('log_password').value;
-				const res = await fetch('/api/login.php', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
-				const data = await res.json();
-				document.getElementById('log_result').innerText = JSON.stringify(data);
-			}
-		</script>
-	</body>
-</html>
-LOGIN
+AWS_REGION="${aws_region}"
+REPO_URI="${ecr_repo_uri}"
+IMAGE_TAG="${image_tag}"
+REGISTRY_HOST="$(echo "$REPO_URI" | cut -d'/' -f1)"
+
+# Login to ECR and pull image
+aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY_HOST"
+docker pull "$REPO_URI:$IMAGE_TAG"
+
+# Run frontend container
+docker rm -f frontend || true
+docker run -d --name frontend --restart unless-stopped -p 80:80 "$REPO_URI:$IMAGE_TAG"
+
+# Health file (in case container not ready, ensure ALB can check)
+echo OK > /root/health || true

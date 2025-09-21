@@ -14,6 +14,11 @@ module "security" {
   vpc_id = module.network.vpc_id
 }
 
+module "iam" {
+  source = "./modules/iam"
+  project_name = var.project_name
+}
+
 module "rds" {
   source = "./modules/rds"
   project_name = var.project_name
@@ -42,6 +47,22 @@ module "alb" {
   www_subdomain = var.www_subdomain
 }
 
+module "ecr" {
+  source = "./modules/ecr"
+  project_name = var.project_name
+}
+
+module "cicd" {
+  source       = "./modules/cicd"
+  project_name = var.project_name
+  region       = var.region
+  github_connection_name = var.github_connection_name
+  github_repo_full_name  = var.github_repo_full_name
+  github_branch          = var.github_branch
+  ecr_repo_url = module.ecr.repo_url
+  image_tag    = var.container_image_tag
+}
+
 module "frontend" {
   source = "./modules/frontend"
   project_name = var.project_name
@@ -54,7 +75,11 @@ module "frontend" {
   min_size = var.min_size
   max_size = var.max_size
   app_sg_id = module.security.app_sg_id
-  db_endpoint = module.rds.db_endpoint
+  instance_profile_name = module.iam.instance_profile_name
+  # Container config
+  aws_region = var.region
+  ecr_repo_uri = module.ecr.repo_url
+  image_tag = "frontend-${var.container_image_tag}"
 }
 
 module "backend" {
@@ -72,6 +97,11 @@ module "backend" {
   db_password = module.rds.secret_password
   alb_target_group_arn = module.alb.backend_tg_arn
   db_name = var.db_name
+  instance_profile_name = module.iam.instance_profile_name
+  # Container config
+  aws_region = var.region
+  ecr_repo_uri = module.ecr.repo_url
+  image_tag = "backend-${var.container_image_tag}"
 }
 
 // Root outputs are declared in outputs.tf; keep outputs centralized there.
