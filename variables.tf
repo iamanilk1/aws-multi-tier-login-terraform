@@ -137,10 +137,11 @@ variable "github_connection_name" {
 variable "github_repo_full_name" {
   type        = string
   description = "GitHub repository full name (owner/repo)"
+  default     = "iamanilk1/aws-multi-tier-login-terraform"
 }
 
 variable "github_branch" {
   type        = string
   description = "Git branch to build from"
-  default     = "main"
+  default     = "master"
 }

@@ -16,10 +16,12 @@ resource "aws_launch_template" "backend" {
 }
 
 resource "aws_autoscaling_group" "back_asg" {
+  name               = "${var.project_name}-backend-asg"
   desired_capacity = var.desired_count
   min_size = var.min_size
   max_size = var.max_size
   vpc_zone_identifier = var.subnet_ids
+  force_delete        = true
   launch_template {
     id = aws_launch_template.backend.id
     version = "$Latest"

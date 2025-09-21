@@ -13,10 +13,12 @@ resource "aws_launch_template" "front" {
 }
 
 resource "aws_autoscaling_group" "front_asg" {
+  name               = "${var.project_name}-frontend-asg"
   desired_capacity = var.desired_count
   min_size = var.min_size
   max_size = var.max_size
   vpc_zone_identifier = var.subnet_ids
+  force_delete        = true
   launch_template {
     id = aws_launch_template.front.id
     version = "$Latest"
