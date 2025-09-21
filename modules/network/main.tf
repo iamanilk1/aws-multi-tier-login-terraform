@@ -1,6 +1,8 @@
 resource "aws_vpc" "this" {
-  cidr_block = var.vpc_cidr
-  tags = { Name = "${var.project_name}-vpc" }
+  cidr_block           = var.vpc_cidr
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags                 = { Name = "${var.project_name}-vpc" }
 }
 
 resource "aws_internet_gateway" "igw" {
@@ -78,6 +80,61 @@ resource "aws_route_table_association" "private_assoc" {
   route_table_id = aws_route_table.private[count.index].id
 }
 
+# --- VPC Interface Endpoints for SSM (no-NAT SSM/Session Manager) ---
+data "aws_region" "current" {}
+
+# Security group for VPC endpoints: allow HTTPS from private subnets only
+resource "aws_security_group" "ssm_vpce" {
+  name        = "${var.project_name}-ssm-vpce-sg"
+  description = "Allow HTTPS from private subnets to SSM interface endpoints"
+  vpc_id      = aws_vpc.this.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Name = "${var.project_name}-ssm-vpce-sg" }
+}
+
+# Ingress 443 from each private subnet CIDR
+resource "aws_security_group_rule" "ssm_vpce_https_in" {
+  for_each          = toset(var.private_subnet_cidrs)
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = [each.value]
+  security_group_id = aws_security_group.ssm_vpce.id
+}
+
+locals {
+  ssm_services = [
+    "ssm",
+    "ssmmessages",
+    "ec2messages",
+  ]
+}
+
+resource "aws_vpc_endpoint" "ssm" {
+  for_each             = toset(local.ssm_services)
+  vpc_id               = aws_vpc.this.id
+  service_name         = "com.amazonaws.${data.aws_region.current.name}.${each.value}"
+  vpc_endpoint_type    = "Interface"
+  private_dns_enabled  = true
+  subnet_ids           = aws_subnet.private[*].id
+  security_group_ids   = [aws_security_group.ssm_vpce.id]
+
+  tags = { Name = "${var.project_name}-${each.value}-vpce" }
+}
+
 output "vpc_id" { value = aws_vpc.this.id }
 output "public_subnet_ids" { value = aws_subnet.public[*].id }
 output "private_subnet_ids" { value = aws_subnet.private[*].id }
+
+# Expose SSM endpoint IDs (map service -> endpoint id)
+output "ssm_vpc_endpoint_ids" {
+  value = { for k, ep in aws_vpc_endpoint.ssm : k => ep.id }
+}

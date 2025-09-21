@@ -9,3 +9,6 @@ output "cicd_artifact_bucket" { value = module.cicd.artifact_bucket }
 output "pipeline_frontend_name" { value = module.cicd.pipeline_frontend_name }
 output "pipeline_backend_name" { value = module.cicd.pipeline_backend_name }
 output "github_connection_arn" { value = module.cicd.github_connection_arn }
+
+# Network SSM VPC interface endpoint IDs (map service -> id)
+output "ssm_vpc_endpoint_ids" { value = try(module.network.ssm_vpc_endpoint_ids, {}) }

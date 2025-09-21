@@ -1,13 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 yum update -y || true
-yum install -y docker unzip || true
+yum install -y docker unzip amazon-ssm-agent || true
 # Install AWS CLI v2
 curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
 unzip -q -o /tmp/awscliv2.zip -d /tmp
 /tmp/aws/install || true
 systemctl enable docker
 systemctl start docker
+systemctl enable amazon-ssm-agent || true
+systemctl start amazon-ssm-agent || true
 
 AWS_REGION="${aws_region}"
 REPO_URI="${ecr_repo_uri}"
