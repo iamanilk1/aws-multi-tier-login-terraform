@@ -26,7 +26,11 @@
         const password = document.getElementById('log_password').value;
         const res = await fetch('/api/login.php', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
         const data = await res.json();
-        document.getElementById('log_result').innerText = JSON.stringify(data);
+        if (data && data.status === 'ok') {
+          window.location.href = '/success.html';
+        } else {
+          document.getElementById('log_result').innerText = data && data.message ? data.message : JSON.stringify(data);
+        }
       }
     </script>
   </body>
