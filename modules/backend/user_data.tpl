@@ -33,10 +33,26 @@ CREATE TABLE IF NOT EXISTS \`$DB_NAME\`.users (
 SQL
 mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" < /tmp/bootstrap.sql || true
 
-# Login to ECR and run backend container with DB env
+# Write redeploy script
+cat > /usr/local/bin/redeploy_backend.sh <<'SCRIPT'
+#!/bin/bash
+set -euo pipefail
+AWS_REGION="${aws_region}"
+REPO_URI="${ecr_repo_uri}"
+IMAGE_TAG="${image_tag}"
+REGISTRY_HOST="$(echo "$REPO_URI" | cut -d'/' -f1)"
+DB_HOST="${db_endpoint}"
+DB_NAME="${db_name}"
+DB_USER="appuser"
+DB_PASS='${db_password}'
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY_HOST"
 docker pull "$REPO_URI:$IMAGE_TAG"
 docker rm -f backend || true
 docker run -d --name backend --restart unless-stopped -p 80:80 \
   -e DB_HOST="$DB_HOST" -e DB_NAME="$DB_NAME" -e DB_USER="$DB_USER" -e DB_PASS="$DB_PASS" \
   "$REPO_URI:$IMAGE_TAG"
+SCRIPT
+chmod +x /usr/local/bin/redeploy_backend.sh
+
+# Initial run
+/usr/local/bin/redeploy_backend.sh || true

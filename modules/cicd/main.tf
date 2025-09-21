@@ -36,7 +36,15 @@ resource "aws_iam_role_policy" "codebuild" {
       { Effect = "Allow", Action = ["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents"], Resource = "*" },
       { Effect = "Allow", Action = ["s3:PutObject","s3:GetObject","s3:GetObjectVersion","s3:GetBucketLocation","s3:ListBucket"], Resource = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"] },
       { Effect = "Allow", Action = ["ecr:GetAuthorizationToken"], Resource = "*" },
-      { Effect = "Allow", Action = ["ecr:BatchCheckLayerAvailability","ecr:CompleteLayerUpload","ecr:DescribeImages","ecr:DescribeRepositories","ecr:GetDownloadUrlForLayer","ecr:InitiateLayerUpload","ecr:PutImage","ecr:UploadLayerPart"], Resource = "*" }
+      { Effect = "Allow", Action = ["ecr:BatchCheckLayerAvailability","ecr:CompleteLayerUpload","ecr:DescribeImages","ecr:DescribeRepositories","ecr:GetDownloadUrlForLayer","ecr:InitiateLayerUpload","ecr:PutImage","ecr:UploadLayerPart"], Resource = "*" },
+      { Effect = "Allow", Action = ["autoscaling:StartInstanceRefresh","autoscaling:DescribeAutoScalingGroups","autoscaling:DescribeInstanceRefreshes"], Resource = "*" },
+      { Effect = "Allow", Action = [
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation",
+          "ssm:ListCommandInvocations",
+          "ssm:ListCommands",
+          "ssm:DescribeInstanceInformation"
+        ], Resource = "*" }
     ]
   })
 }
@@ -61,6 +69,10 @@ resource "aws_codebuild_project" "frontend" {
     environment_variable {
       name  = "AWS_REGION"
       value = var.region
+    }
+    environment_variable {
+      name  = "PROJECT_NAME"
+      value = var.project_name
     }
   }
   source {
@@ -89,6 +101,10 @@ resource "aws_codebuild_project" "backend" {
     environment_variable {
       name  = "AWS_REGION"
       value = var.region
+    }
+    environment_variable {
+      name  = "PROJECT_NAME"
+      value = var.project_name
     }
   }
   source {

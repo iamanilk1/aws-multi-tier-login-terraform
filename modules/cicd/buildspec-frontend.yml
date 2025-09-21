@@ -11,3 +11,12 @@ phases:
   post_build:
     commands:
       - docker push $ECR_REPO:$IMAGE_TAG
+      - echo Deploying new image in-place via SSM on instances tagged Name=${PROJECT_NAME}-front
+      - >
+        aws ssm send-command \
+          --document-name "AWS-RunShellScript" \
+          --comment "Redeploy frontend container" \
+          --targets Key=tag:Name,Values="${PROJECT_NAME}-front" \
+          --parameters '{"commands":["sudo /usr/local/bin/redeploy_frontend.sh"]}' \
+          --timeout-seconds 600 \
+          --region $AWS_REGION || true

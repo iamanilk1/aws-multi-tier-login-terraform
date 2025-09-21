@@ -5,6 +5,7 @@ resource "aws_launch_template" "front" {
   key_name = var.key_name
   vpc_security_group_ids = [var.app_sg_id]
   iam_instance_profile { name = var.instance_profile_name }
+  update_default_version = true
   user_data = base64encode(templatefile("${path.module}/user_data.tpl", {
     aws_region = var.aws_region,
     ecr_repo_uri = var.ecr_repo_uri,

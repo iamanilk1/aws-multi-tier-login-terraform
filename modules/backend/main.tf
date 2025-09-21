@@ -5,6 +5,7 @@ resource "aws_launch_template" "backend" {
   key_name = var.key_name
   vpc_security_group_ids = [var.app_sg_id]
   iam_instance_profile { name = var.instance_profile_name }
+  update_default_version = true
   user_data = base64encode(templatefile("${path.module}/user_data.tpl", {
     db_endpoint = var.db_endpoint,
     db_password = var.db_password,
