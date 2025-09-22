@@ -39,12 +39,7 @@ module "alb" {
   vpc_id = module.network.vpc_id
   public_subnet_ids = module.network.public_subnet_ids
   alb_sg_id = module.security.alb_sg_id
-  enable_https = var.enable_https
-  domain_name = var.domain_name
-  create_hosted_zone = var.create_hosted_zone
-  hosted_zone_id = var.hosted_zone_id
-  include_www = var.include_www
-  www_subdomain = var.www_subdomain
+  # Remove HTTPS/domain config - ALB serves HTTP only for CloudFront origin
 }
 
 module "ecr" {
