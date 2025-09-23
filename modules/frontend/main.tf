@@ -25,6 +25,8 @@ resource "aws_autoscaling_group" "front_asg" {
     version = "$Latest"
   }
   target_group_arns = [var.alb_target_group_arn]
+  default_cooldown = 120
+  health_check_grace_period = 180
   tag {
     key = "Name"
     value = "${var.project_name}-front"

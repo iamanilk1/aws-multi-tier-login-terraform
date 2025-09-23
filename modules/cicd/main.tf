@@ -4,9 +4,9 @@ locals {
 
 data "aws_caller_identity" "current" {}
 
-# Use existing available connection instead of creating a new one
-data "aws_codestarconnections_connection" "github" {
-  arn = "arn:aws:codeconnections:ap-south-1:050702562028:connection/674bd67d-3ad6-492a-86d2-2734fde02e0c"
+resource "aws_codestarconnections_connection" "github" {
+  name          = var.github_connection_name
+  provider_type = "GitHub"
 }
 
 resource "aws_s3_bucket" "artifacts" {
@@ -129,7 +129,7 @@ resource "aws_iam_role_policy" "codepipeline" {
     Statement = [
       { Effect = "Allow", Action = ["s3:PutObject","s3:GetObject","s3:GetObjectVersion","s3:GetBucketLocation","s3:ListBucket"], Resource = [aws_s3_bucket.artifacts.arn, "${aws_s3_bucket.artifacts.arn}/*"] },
       { Effect = "Allow", Action = ["codebuild:BatchGetBuilds","codebuild:StartBuild"], Resource = [aws_codebuild_project.frontend.arn, aws_codebuild_project.backend.arn] },
-      { Effect = "Allow", Action = ["codestar-connections:UseConnection"], Resource = data.aws_codestarconnections_connection.github.arn }
+      { Effect = "Allow", Action = ["codestar-connections:UseConnection"], Resource = aws_codestarconnections_connection.github.arn }
     ]
   })
 }
@@ -153,7 +153,7 @@ resource "aws_codepipeline" "pipeline_frontend" {
       version          = "1"
       output_artifacts = ["source_output"]
       configuration = {
-        ConnectionArn    = data.aws_codestarconnections_connection.github.arn
+        ConnectionArn    = aws_codestarconnections_connection.github.arn
         FullRepositoryId = var.github_repo_full_name
         BranchName       = var.github_branch
       }
@@ -193,7 +193,7 @@ resource "aws_codepipeline" "pipeline_backend" {
       version          = "1"
       output_artifacts = ["source_output"]
       configuration = {
-        ConnectionArn    = data.aws_codestarconnections_connection.github.arn
+        ConnectionArn    = aws_codestarconnections_connection.github.arn
         FullRepositoryId = var.github_repo_full_name
         BranchName       = var.github_branch
       }
@@ -217,4 +217,4 @@ resource "aws_codepipeline" "pipeline_backend" {
 output "artifact_bucket" { value = aws_s3_bucket.artifacts.bucket }
 output "pipeline_frontend_name" { value = aws_codepipeline.pipeline_frontend.name }
 output "pipeline_backend_name" { value = aws_codepipeline.pipeline_backend.name }
-output "github_connection_arn" { value = data.aws_codestarconnections_connection.github.arn }
+output "github_connection_arn" { value = aws_codestarconnections_connection.github.arn }

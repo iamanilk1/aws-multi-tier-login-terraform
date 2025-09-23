@@ -39,7 +39,12 @@ module "alb" {
   vpc_id = module.network.vpc_id
   public_subnet_ids = module.network.public_subnet_ids
   alb_sg_id = module.security.alb_sg_id
-  # Remove HTTPS/domain config - ALB serves HTTP only for CloudFront origin
+  enable_https = var.enable_https
+  domain_name = var.domain_name
+  create_hosted_zone = var.create_hosted_zone
+  hosted_zone_id = var.hosted_zone_id
+  include_www = var.include_www
+  www_subdomain = var.www_subdomain
 }
 
 module "ecr" {
@@ -97,6 +102,154 @@ module "backend" {
   aws_region = var.region
   ecr_repo_uri = module.ecr.repo_url
   image_tag = "backend-${var.container_image_tag}"
+}
+
+// Autoscaling policies for frontend
+resource "aws_autoscaling_policy" "frontend_scale_out_step" {
+  name                   = "${var.project_name}-frontend-scale-out-step"
+  autoscaling_group_name = module.frontend.asg_name
+  policy_type            = "StepScaling"
+  adjustment_type        = "ExactCapacity"
+
+  # With a single alarm at threshold 30, these bounds are differences over 30
+  # 30-49 (diff 0-19) => capacity 2
+  step_adjustment {
+    metric_interval_lower_bound = 0
+    metric_interval_upper_bound = 20
+    scaling_adjustment          = 2
+  }
+  # 50-99 (diff 20-69) => capacity 3
+  step_adjustment {
+    metric_interval_lower_bound = 20
+    metric_interval_upper_bound = 70
+    scaling_adjustment          = 3
+  }
+  # 100+ (diff >=70) => capacity 4 (max)
+  step_adjustment {
+    metric_interval_lower_bound = 70
+    scaling_adjustment          = 4
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "frontend_req_gt_30" {
+  alarm_name          = "${var.project_name}-frontend-requests-gt-30"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "RequestCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 30
+  alarm_description   = "Frontend requests >= 30 in 1 minute"
+  dimensions = {
+    TargetGroup  = module.alb.frontend_tg_arn_suffix
+    LoadBalancer = module.alb.alb_arn_suffix
+  }
+  alarm_actions = [aws_autoscaling_policy.frontend_scale_out_step.arn]
+}
+
+resource "aws_autoscaling_policy" "frontend_scale_in_exact_1" {
+  name                   = "${var.project_name}-frontend-scale-in-1"
+  autoscaling_group_name = module.frontend.asg_name
+  policy_type            = "StepScaling"
+  adjustment_type        = "ExactCapacity"
+  step_adjustment {
+    # For a LessThanThreshold alarm, use an upper bound of 0 to cover all
+    # values below the threshold; avoids a positive upper bound requirement.
+    metric_interval_upper_bound = 0
+    scaling_adjustment          = 1
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "frontend_req_lt_10" {
+  alarm_name          = "${var.project_name}-frontend-requests-lt-10"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "RequestCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 10
+  alarm_description   = "Frontend requests < 10 for 2 minutes"
+  dimensions = {
+    TargetGroup  = module.alb.frontend_tg_arn_suffix
+    LoadBalancer = module.alb.alb_arn_suffix
+  }
+  alarm_actions = [aws_autoscaling_policy.frontend_scale_in_exact_1.arn]
+}
+
+// Autoscaling policies for backend
+resource "aws_autoscaling_policy" "backend_scale_out_step" {
+  name                   = "${var.project_name}-backend-scale-out-step"
+  autoscaling_group_name = module.backend.backend_asg_name
+  policy_type            = "StepScaling"
+  adjustment_type        = "ExactCapacity"
+
+  # With a single alarm at threshold 30, these bounds are differences over 30
+  # 30-49 (diff 0-19) => capacity 2
+  step_adjustment {
+    metric_interval_lower_bound = 0
+    metric_interval_upper_bound = 20
+    scaling_adjustment          = 2
+  }
+  # 50-99 (diff 20-69) => capacity 3
+  step_adjustment {
+    metric_interval_lower_bound = 20
+    metric_interval_upper_bound = 70
+    scaling_adjustment          = 3
+  }
+  # 100+ (diff >=70) => capacity 4 (max)
+  step_adjustment {
+    metric_interval_lower_bound = 70
+    scaling_adjustment          = 4
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "backend_req_gt_30" {
+  alarm_name          = "${var.project_name}-backend-requests-gt-30"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "RequestCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 30
+  alarm_description   = "Backend requests >= 30 in 1 minute"
+  dimensions = {
+    TargetGroup  = module.alb.backend_tg_arn_suffix
+    LoadBalancer = module.alb.alb_arn_suffix
+  }
+  alarm_actions = [aws_autoscaling_policy.backend_scale_out_step.arn]
+}
+
+resource "aws_autoscaling_policy" "backend_scale_in_exact_1" {
+  name                   = "${var.project_name}-backend-scale-in-1"
+  autoscaling_group_name = module.backend.backend_asg_name
+  policy_type            = "StepScaling"
+  adjustment_type        = "ExactCapacity"
+  step_adjustment {
+    # For a LessThanThreshold alarm, use an upper bound of 0 to cover all
+    # values below the threshold; avoids a positive upper bound requirement.
+    metric_interval_upper_bound = 0
+    scaling_adjustment          = 1
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "backend_req_lt_10" {
+  alarm_name          = "${var.project_name}-backend-requests-lt-10"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "RequestCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 10
+  alarm_description   = "Backend requests < 10 for 2 minutes"
+  dimensions = {
+    TargetGroup  = module.alb.backend_tg_arn_suffix
+    LoadBalancer = module.alb.alb_arn_suffix
+  }
+  alarm_actions = [aws_autoscaling_policy.backend_scale_in_exact_1.arn]
 }
 
 // Root outputs are declared in outputs.tf; keep outputs centralized there.
