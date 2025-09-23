@@ -2,6 +2,8 @@
 
 **🌐 You can browse the website at https://www.iamanilk.space**
 
+**Note: Due to domain cost considerations, only Scenario 2 is currently deployed and accessible. While the live deployment will be decommissioned in couple of days, all three scenarios (1, 2, and 3) include complete Terraform configurations for infrastructure provisioning.**
+
 ## Access
 - **HTTP**: `httpHow to test
 - After apply, note the output `alb_dns`.
