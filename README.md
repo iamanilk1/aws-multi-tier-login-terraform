@@ -1,33 +1,75 @@
-Project: Simple Login (Senior) - Terraform infrastructure
+# Scenario 2: Multi-Tier Si```
 
-This folder contains Terraform code that provisions a multi-tier architecture for a simple login application on AWS:
-- VPC with public and private subnets across 2 AZs
-- Security groups for ALB, application instances, and RDS
-- ALB (public) with path-based routing and two Target Groups (frontend, backend)
-- Frontend AutoScaling Group (behind ALB)
-- Backend AutoScaling Group (behind ALB on /api/*)
-- RDS MySQL instance in private subnets
+## Access
+- **HTTP**: `httpHow to test
+- After apply, note the output `alb_dns`.
+- If using HTTPS + custom domain, you won't use ALB DNS; see below. Otherwise, open http://ALB_DNS/ for frontend and http://ALB_DNS/api/ (or /api/api.php) for backend.
 
-Quick start
-1. cd scenario2
-2. Create a `terraform.tfvars` file with required values (see `variables.tf`) or pass via CLI
-3. terraform init
-4. terraform plan
-5. terraform apply
+## Application Screenshots
 
-Notes
-Variables to consider (sample tfvars)
+Here's what the Simple Login application looks like when deployed:
+
+### 1. Landing Page (Frontend)
+![Landing Page](./images/landing-page.png)
+
+### 2. Registration Page
+![Registration Page](./images/registered-user.png)
+
+### 3. Login Page  
+![Login Page](./images/login-page.png)
+
+### 4. Success Page (After Login)
+![Success Page](./images/success-page.png)
+
+Save your screenshots in the `images/` folder with the above filenames to display them.
+
+Notesl- **CI/CD**: CodePipeline for automated deployments
+
+### HTTPS Setup
+Set `enable_https = true` and `domain_name = "iamanilk.space"` in tfvars. Update your domain's nameservers to the Route53 values from Terraform outputs.
+
+### Containerization
+Build and push Docker images to ECR, then update `container_image_tag` variable to deploy.TPS**: `https://iamanilk.space/` (after DNS delegation)
+- **API**: `/api/*` routes to backend
+
+## Testing Fault Tolerance
+1. **Instance failure**: Terminate EC2 instances via console
+2. **Health checks**: Stop services on instances  
+3. **Load testing**: Generate traffic to trigger autoscaling
+4. **DB failover**: Force RDS reboot (if Multi-AZ enabled)
+
+Monitor via CloudWatch: `HealthyHostCount`, `RequestCount`, `TargetResponseTime`
+
+---
+
+## Additional Features (Optional)
+- **Containerization**: ECR integration with Docker imageson
+
+Deploy a scalable Simple Login web application with frontend, backend API, and MySQL database on AWS using Terraform.
+
+## Architecture
+- **Network**: VPC with public/private subnets across 2 AZs  
+- **Load Balancer**: ALB with path-based routing (`/` → frontend, `/api/*` → backend)
+- **Compute**: Auto Scaling Groups for frontend and backend EC2 instances (1-4 instances each)
+- **Database**: RDS MySQL in private subnets
+- **Security**: Layered security groups, IAM roles
+- **Scaling**: Request-based autoscaling with CloudWatch alarms
+
+## Quick Deploy
+```bash
+cd scenario2
+terraform init
+terraform plan
+terraform apply
+```
+
+## Essential Variables (terraform.tfvars)
+```hcl
 project_name = "simple-login"
-region       = "ap-south-1"
-azs          = ["ap-south-1a", "ap-south-1b"]
-vpc_cidr     = "10.0.0.0/16"
-public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
-private_subnet_cidrs = ["10.0.101.0/24", "10.0.102.0/24"]
-instance_type_frontend = "t3.micro"
-instance_type_backend  = "t3.micro"
-desired_frontend = 2
-desired_backend  = 2
-min_size = 1
+region = "ap-south-1"
+key_name = "your-keypair"
+domain_name = "iamanilk.space"  # for HTTPS
+enable_https = true
 max_size = 3
 key_name = "your-ec2-keypair"
 db_instance_class = "db.t3.micro"
