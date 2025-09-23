@@ -12,7 +12,7 @@ Here's what the Simple Login application looks like when deployed:
 ### 1. Landing Page (Frontend)
 ![Landing Page](./images/landing-page.png)
 
-### 2. Registration Page
+### 2. User Registered
 ![User Registered](./images/registered-user.png)
 
 ### 3. Login Page  
