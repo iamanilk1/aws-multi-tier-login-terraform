@@ -4,10 +4,13 @@
 
 **Note: Due to domain cost considerations, a single domain was used for testing all scenarios. Currently, all three scenarios are offline, but each can be fully deployed using the provided Terraform scripts.**
 
+## Overview
+Deploy a scalable Simple Login web application with frontend, backend API, and MySQL database on AWS using Terraform. Features multi-tier architecture with Auto Scaling Groups, Application Load Balancer with path-based routing, and secure HTTPS access via custom domain.
+
 ## Access
-- **HTTP**: `httpHow to test
-- After apply, note the output `alb_dns`.
-- If using HTTPS + custom domain, you won't use ALB DNS; see below. Otherwise, open http://ALB_DNS/ for frontend and http://ALB_DNS/api/ (or /api/api.php) for backend.
+- **HTTPS**: `https://www.iamanilk.space/` (frontend landing page)
+- **API**: `https://www.iamanilk.space/api/*` (backend API endpoints)
+- **Note**: Direct ALB access is blocked for security. Access only via the custom domain.
 
 ## Application Screenshots
 
