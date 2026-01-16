@@ -2,7 +2,7 @@
 
 **🌐 You can browse the website at https://www.iamanilk.space**
 
-# Currently the project is down, but it can be fully recreated using this Terraform code
+**Currently the project is down, but it can be fully recreated using this Terraform code**
 
 ## Overview
 Deploy a scalable Simple Login web application with frontend, backend API, and MySQL database on AWS using Terraform. Features multi-tier architecture with Auto Scaling Groups, Application Load Balancer with path-based routing, and secure HTTPS access via custom domain.
